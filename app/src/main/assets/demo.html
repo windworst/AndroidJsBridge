@@ -1,0 +1,29 @@
+<html>
+    <body>
+        <form>
+            <input name="input" id="input" type="text"/>
+            <input type="button" name="buttonFromNative" value="fromNative" onclick="fromNativeOnClick()" />
+            <input type="button" name="buttonSendToNative" value="sendToNative" onclick="sendToNativeOnClick()" />
+        </form>
+        <script src="js_bridge.js"></script>
+        <script>
+          var input = document.getElementById("input")
+          window.jsBridge = createJsBridge()
+          window.jsBridge.register("jsSetInput", function(paramString, callback){
+            input.value = paramString
+          }).register("jsGetInput", function(paramString, callback){
+            if(null != callback) {
+              callback(input.value)
+            }
+          })
+          function fromNativeOnClick() {
+            window.jsBridge.callNative("nativeGetInput", "", function(paramString){
+              input.value = paramString
+            })
+          }
+          function sendToNativeOnClick() {
+            window.jsBridge.callNative("nativeSetInput", input.value)
+          }
+        </script>
+    </body>
+</html>
