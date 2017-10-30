@@ -1,11 +1,13 @@
-function createJsBridge() {
+function createJsBridge(name) {
+    if(null == name) return null
     var functions = {}
     var callbacks = {}
+    var nativeObjectName = 'NATIVE_' + name
     function sendToNative(data) {
         if(null != window.webkit) {
-            window.webkit.messageHandlers.AppModel.jsCallNative(data);   //iOS
-        } else if(null != window.native_webview) {
-            window.native_webview.jsCallNative(JSON.stringify(data));    //Android
+            window.webkit.messageHandlers[nativeObjectName].jsCallNative(data);   //iOS
+        } else if(null != window[nativeObjectName]) {
+            window[nativeObjectName].jsCallNative(JSON.stringify(data));    //Android
         } else {
             console.log(data)
         }

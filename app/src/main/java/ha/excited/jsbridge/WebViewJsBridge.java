@@ -8,7 +8,7 @@ public class WebViewJsBridge extends JsBridge {
     public WebViewJsBridge(WebView webView, String name) {
         super(name);
         this.webView = webView;
-        webView.addJavascriptInterface(this, "native_webview");
+        webView.addJavascriptInterface(this, exposeName());
     }
 
     @android.webkit.JavascriptInterface

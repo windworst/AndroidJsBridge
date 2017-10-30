@@ -22,6 +22,7 @@ abstract public class JsBridge {
     private final static String PARAM_STRING = "paramString";
     private final static String JS_CALLBACK = "jsCallback";
     private final static String NATIVE_CALLBACK = "nativeCallback";
+    private final static String EXPOSE_PREFIX = "NATIVE_";
     private final static String CALLBACK_PREFIX = "NATIVE_CB_";
 
     private final String name;
@@ -132,5 +133,10 @@ abstract public class JsBridge {
     private void sendToJs(String data) {
         callJs(String.format("javascript:window.%s.nativeCallJs('%s')", name, data));
     }
+
+    protected final String exposeName() {
+        return EXPOSE_PREFIX + name;
+    }
+
     protected abstract void callJs(String uri);
 }

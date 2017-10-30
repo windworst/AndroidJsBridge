@@ -8,7 +8,7 @@
         <script src="js_bridge.js"></script>
         <script>
           var input = document.getElementById("input")
-          window.jsBridge = createJsBridge()
+          window.jsBridge = createJsBridge('jsBridge')
           window.jsBridge.register("jsSetInput", function(paramString, callback){
             input.value = paramString
           }).register("jsGetInput", function(paramString, callback){
