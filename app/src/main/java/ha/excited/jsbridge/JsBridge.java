@@ -104,12 +104,7 @@ abstract public class JsBridge {
                 final Callback callback = callbacks.get(nativeCallback);
                 if (null != callback) {
                     callbacks.remove(nativeCallback);
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            callback.callback(paramString);
-                        }
-                    });
+                    callback.callback(paramString);
                 }
             }
 
