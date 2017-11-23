@@ -5,9 +5,9 @@ function createJsBridge(name) {
     var nativeObjectName = 'NATIVE_' + name
     function sendToNative(data) {
         if(null != window.webkit) {
-            window.webkit.messageHandlers[nativeObjectName].jsCallNative(data);   //iOS
+            return window.webkit.messageHandlers[nativeObjectName].jsCallNative(data);   //iOS
         } else if(null != window[nativeObjectName]) {
-            window[nativeObjectName].jsCallNative(JSON.stringify(data));    //Android
+            return window[nativeObjectName].jsCallNative(JSON.stringify(data));    //Android
         } else {
             console.log(data)
         }
@@ -35,7 +35,7 @@ function createJsBridge(name) {
             if(null != callbackFunc) {
                 data.jsCallback = makeJsCallBackString(callbackFunc)
             }
-            sendToNative(data)
+            return sendToNative(data)
         },
         nativeCallJs: function(paramString) {
             var params = JSON.parse(paramString)

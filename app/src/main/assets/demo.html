@@ -2,7 +2,8 @@
     <body>
         <form>
             <input name="input" id="input" type="text"/>
-            <input type="button" name="buttonFromNative" value="fromNative" onclick="fromNativeOnClick()" />
+            <input type="button" name="buttonFromNativeSync" value="fromNativeSync" onclick="fromNativeSyncOnClick()" />
+            <input type="button" name="buttonFromNativeAsync" value="fromNativeAsync" onclick="fromNativeAsyncOnClick()" />
             <input type="button" name="buttonSendToNative" value="sendToNative" onclick="sendToNativeOnClick()" />
         </form>
         <script src="js_bridge.js"></script>
@@ -16,7 +17,10 @@
               callback(input.value)
             }
           })
-          function fromNativeOnClick() {
+          function fromNativeSyncOnClick() {
+            input.value = window.jsBridge.callNative("nativeGetInput", "")
+          }
+          function fromNativeAsyncOnClick() {
             window.jsBridge.callNative("nativeGetInput", "", function(paramString){
               input.value = paramString
             })

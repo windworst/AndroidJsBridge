@@ -15,7 +15,7 @@ abstract public class JsBridge {
     }
 
     public interface Function {
-        void call(String paramString, Callback callback);
+        String call(String paramString, Callback callback);
     }
 
     private final static String FUNC_NAME = "funcName";
@@ -74,49 +74,56 @@ abstract public class JsBridge {
         return this;
     }
 
-    public void jsCallNative(final String message) {
-        handler.post(new Runnable() {
+    public synchronized String jsCallNative(final String message) {
+        return syncCall(new SyncCall<String>() {
             @Override
-            public void run() {
-                handleMessage(message);
+            public String call() {
+                return handleMessage(message);
             }
         });
     }
 
-    private void handleMessage(String message) {
+    private String handleMessage(String message) {
         try {
             JSONObject params = new JSONObject(message);
             if (params.has(FUNC_NAME)) {
-                String funcName = params.getString(FUNC_NAME);
-                String paramString = params.getString(PARAM_STRING);
-                Function function = functions.get(funcName);
+                final String funcName = params.getString(FUNC_NAME);
+                final String paramString = params.getString(PARAM_STRING);
+                final Function function = functions.get(funcName);
                 if (null != function) {
                     String jsCallback = null;
                     if (params.has(JS_CALLBACK)) {
                         jsCallback = params.getString(JS_CALLBACK);
                     }
-                    function.call(paramString, makeJsCallback(jsCallback));
+                    final String finalJsCallback = jsCallback;
+                    return function.call(paramString, makeJsCallback(finalJsCallback));
                 }
             } else if (params.has(NATIVE_CALLBACK)) {
                 String nativeCallback = params.getString(NATIVE_CALLBACK);
-                String paramString = params.getString(PARAM_STRING);
-                Callback callback = callbacks.get(nativeCallback);
+                final String paramString = params.getString(PARAM_STRING);
+                final Callback callback = callbacks.get(nativeCallback);
                 if (null != callback) {
                     callbacks.remove(nativeCallback);
-                    callback.callback(paramString);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.callback(paramString);
+                        }
+                    });
                 }
             }
 
         } catch (JSONException e) {
             e.printStackTrace();
         }
+        return null;
     }
 
-    public JsBridge callJs(String funcName, String paramString) {
-        return callJs(funcName, paramString, null);
+    public JsBridge evalJs(String funcName, String paramString) {
+        return evalJs(funcName, paramString, null);
     }
 
-    public JsBridge callJs(String funcName, String paramString, Callback callback) {
+    public JsBridge evalJs(String funcName, String paramString, Callback callback) {
         try {
             JSONObject data = new JSONObject();
             data.put(FUNC_NAME, funcName).put(PARAM_STRING, paramString);
@@ -130,13 +137,59 @@ abstract public class JsBridge {
         return this;
     }
 
-    private void sendToJs(String data) {
-        callJs(String.format("javascript:window.%s.nativeCallJs('%s')", name, data));
+    private void sendToJs(final String data) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                evalJs(String.format("javascript:window.%s.nativeCallJs('%s')", name, data));
+            }
+        });
+    }
+
+    private boolean runOnUiThread(Runnable runnable) {
+        if (handler.getLooper().getThread() == Thread.currentThread()) {
+            runnable.run();
+            return false;
+        } else {
+            handler.post(runnable);
+            return true;
+        }
+    }
+
+    private interface SyncCall<T> {
+        T call();
+    }
+
+    private <T> T syncCall(final SyncCall<T> syncCall) {
+        if (handler.getLooper().getThread() == Thread.currentThread()) {
+            return syncCall.call();
+        }
+        final Object lock = new Object();
+        final Object[] result = new Object[1];
+        final boolean[] finished = new boolean[]{false};
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                result[0] = syncCall.call();
+                synchronized (lock) {
+                    finished[0] = true;
+                    lock.notifyAll();
+                }
+            }
+        });
+        synchronized (lock) {
+            try {
+                while (!finished[0]) lock.wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        return (T) result[0];
     }
 
     protected final String exposeName() {
         return EXPOSE_PREFIX + name;
     }
 
-    protected abstract void callJs(String uri);
+    protected abstract void evalJs(String jsCode);
 }

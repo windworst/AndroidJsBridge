@@ -30,24 +30,25 @@ public class MainActivity extends AppCompatActivity {
 
         final JsBridge webViewJsBridge = new WebViewJsBridge(webView, "jsBridge").register("nativeGetInput", new JsBridge.Function() {
             @Override
-            public void call(String paramString, JsBridge.Callback callback) {
-                if (null != callback) {
-                    callback.callback(editText.getText().toString());
-                }
+            public String call(String paramString, JsBridge.Callback callback) {
+                String value = editText.getText().toString();
+                if(null != callback) callback.callback(value);
+                return value;
             }
         }).register("nativeSetInput", new JsBridge.Function() {
             @Override
-            public void call(String paramString, JsBridge.Callback callback) {
+            public String call(String paramString, JsBridge.Callback callback) {
                 editText.setText(paramString);
+                return null;
             }
         });
 
         buttonFromJs.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                webViewJsBridge.callJs("jsGetInput", "", new JsBridge.Callback() {
+                webViewJsBridge.evalJs("jsGetInput", "", new JsBridge.Callback() {
                     @Override
-                    public void callback(String paramString) {
+                    public void callback(final String paramString) {
                         editText.setText(paramString);
                     }
                 });
@@ -56,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
         buttonSendToJs.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                webViewJsBridge.callJs("jsSetInput", editText.getText().toString());
+                webViewJsBridge.evalJs("jsSetInput", editText.getText().toString());
             }
         });
 

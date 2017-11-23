@@ -13,12 +13,12 @@ public class WebViewJsBridge extends JsBridge {
 
     @android.webkit.JavascriptInterface
     @Override
-    public void jsCallNative(String message) {
-        super.jsCallNative(message);
+    public String jsCallNative(String message) {
+        return super.jsCallNative(message);
     }
 
     @Override
-    protected void callJs(String uri) {
-        webView.loadUrl(uri);
+    protected void evalJs(String jsCode) {
+        webView.loadUrl(jsCode);
     }
 }
