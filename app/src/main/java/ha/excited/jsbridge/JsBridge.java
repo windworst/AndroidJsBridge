@@ -119,11 +119,11 @@ abstract public class JsBridge {
         return null;
     }
 
-    public JsBridge evalJs(String funcName, String paramString) {
-        return evalJs(funcName, paramString, null);
+    public JsBridge callJs(String funcName, String paramString) {
+        return callJs(funcName, paramString, null);
     }
 
-    public JsBridge evalJs(String funcName, String paramString, Callback callback) {
+    public JsBridge callJs(String funcName, String paramString, Callback callback) {
         try {
             JSONObject data = new JSONObject();
             data.put(FUNC_NAME, funcName).put(PARAM_STRING, paramString);

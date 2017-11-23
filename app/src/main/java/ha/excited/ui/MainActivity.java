@@ -46,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
         buttonFromJs.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                webViewJsBridge.evalJs("jsGetInput", "", new JsBridge.Callback() {
+                webViewJsBridge.callJs("jsGetInput", "", new JsBridge.Callback() {
                     @Override
                     public void callback(final String paramString) {
                         editText.setText(paramString);
@@ -57,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
         buttonSendToJs.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                webViewJsBridge.evalJs("jsSetInput", editText.getText().toString());
+                webViewJsBridge.callJs("jsSetInput", editText.getText().toString());
             }
         });
 
