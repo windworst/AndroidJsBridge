@@ -25,7 +25,8 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setLoadWithOverviewMode(true);
 
         final EditText editText = (EditText) findViewById(R.id.editText);
-        final Button buttonFromJs = (Button) findViewById(R.id.buttonFromJs);
+        final Button buttonFromJsSync = (Button) findViewById(R.id.buttonFromJsSync);
+        final Button buttonFromJsAsync = (Button) findViewById(R.id.buttonFromJsAsync);
         final Button buttonSendToJs = (Button) findViewById(R.id.buttonSendToJs);
 
         final JsBridge webViewJsBridge = new WebViewJsBridge(webView, "jsBridge").register("nativeGetInput", new JsBridge.Function() {
@@ -42,8 +43,13 @@ public class MainActivity extends AppCompatActivity {
                 return null;
             }
         });
-
-        buttonFromJs.setOnClickListener(new View.OnClickListener() {
+        buttonFromJsSync.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                editText.setText(webViewJsBridge.callJsSync("jsGetInput", ""));
+            }
+        });
+        buttonFromJsAsync.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 webViewJsBridge.callJs("jsGetInput", "", new JsBridge.Callback() {

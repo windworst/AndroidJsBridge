@@ -19,11 +19,14 @@ abstract public class JsBridge {
     }
 
     private final static String FUNC_NAME = "funcName";
+    private final static String SYNC = "sync";
+    private final static String RESULT = "result";
     private final static String PARAM_STRING = "paramString";
     private final static String JS_CALLBACK = "jsCallback";
     private final static String NATIVE_CALLBACK = "nativeCallback";
-    private final static String EXPOSE_PREFIX = "NATIVE_";
+    private final static String EXPOSE_PREFIX = "ANDROID_NATIVE_";
     private final static String CALLBACK_PREFIX = "NATIVE_CB_";
+    private final static int SYNC_WAIT_TIME = 500;
 
     private final String name;
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -74,18 +77,34 @@ abstract public class JsBridge {
         return this;
     }
 
-    public synchronized String jsCallNative(final String message) {
-        return syncCall(new SyncCall<String>() {
-            @Override
-            public String call() {
-                return handleMessage(message);
+    public String jsCallNative(String message) {
+        try {
+            final JSONObject params = new JSONObject(message);
+            if (params.has(RESULT)) {
+                handleSyncResult(params.getString(RESULT));
+            } else if (params.has(SYNC)) {
+                return syncCall(new SyncCall<String>() {
+                    @Override
+                    public String call() {
+                        return handleMessage(params);
+                    }
+                });
+            } else {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        handleMessage(params);
+                    }
+                });
             }
-        });
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 
-    private String handleMessage(String message) {
+    private String handleMessage(JSONObject params) {
         try {
-            JSONObject params = new JSONObject(message);
             if (params.has(FUNC_NAME)) {
                 final String funcName = params.getString(FUNC_NAME);
                 final String paramString = params.getString(PARAM_STRING);
@@ -111,14 +130,14 @@ abstract public class JsBridge {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        return null;
+        return "";
     }
 
-    public JsBridge callJs(String funcName, String paramString) {
-        return callJs(funcName, paramString, null);
+    public void callJs(String funcName, String paramString) {
+        callJs(funcName, paramString, null);
     }
 
-    public JsBridge callJs(String funcName, String paramString, Callback callback) {
+    public void callJs(String funcName, String paramString, Callback callback) {
         try {
             JSONObject data = new JSONObject();
             data.put(FUNC_NAME, funcName).put(PARAM_STRING, paramString);
@@ -129,7 +148,17 @@ abstract public class JsBridge {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        return this;
+    }
+
+    public String callJsSync(String funcName, String paramString) {
+        try {
+            JSONObject data = new JSONObject();
+            data.put(FUNC_NAME, funcName).put(PARAM_STRING, paramString).put(SYNC, true);
+            return sendToJsSync(data.toString());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 
     private void sendToJs(final String data) {
@@ -139,6 +168,34 @@ abstract public class JsBridge {
                 evalJs(String.format("javascript:window.%s.nativeCallJs('%s')", name, data));
             }
         });
+    }
+
+    private String syncResult = "";
+    private boolean syncWait = false;
+    private Object syncLock = new Object();
+
+    private void handleSyncResult(String result) {
+        synchronized (syncLock) {
+            syncResult = result;
+            syncWait = false;
+            syncLock.notifyAll();
+        }
+    }
+
+    private synchronized String sendToJsSync(String data) {
+        synchronized (syncLock) {
+            syncWait = true;
+            syncResult = "";
+            sendToJs(data);
+            try {
+                while (syncWait) syncLock.wait(SYNC_WAIT_TIME, 0);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        String result = syncResult;
+        syncResult = "";
+        return result;
     }
 
     private boolean runOnUiThread(Runnable runnable) {
@@ -174,7 +231,7 @@ abstract public class JsBridge {
         });
         synchronized (lock) {
             try {
-                while (!finished[0]) lock.wait();
+                while (!finished[0]) lock.wait(SYNC_WAIT_TIME, 0);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

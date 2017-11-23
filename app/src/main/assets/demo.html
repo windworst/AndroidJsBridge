@@ -1,32 +1,31 @@
 <html>
     <body>
         <form>
-            <input name="input" id="input" type="text"/>
+            <input name="input" id="input" type="text" style="display: block; height: 40px; width: 100%;"/>
             <input type="button" name="buttonFromNativeSync" value="fromNativeSync" onclick="fromNativeSyncOnClick()" />
             <input type="button" name="buttonFromNativeAsync" value="fromNativeAsync" onclick="fromNativeAsyncOnClick()" />
             <input type="button" name="buttonSendToNative" value="sendToNative" onclick="sendToNativeOnClick()" />
         </form>
         <script src="js_bridge.js"></script>
         <script>
-          var input = document.getElementById("input")
-          window.jsBridge = createJsBridge('jsBridge')
-          window.jsBridge.register("jsSetInput", function(paramString, callback){
-            input.value = paramString
+          var input = document.getElementById("input");
+          jsBridge = createJsBridge('jsBridge');
+          jsBridge.register("jsSetInput", function(paramString, callback){
+            input.value = paramString;
           }).register("jsGetInput", function(paramString, callback){
-            if(null != callback) {
-              callback(input.value)
-            }
+            if(null != callback) callback(input.value);
+            return input.value;
           })
           function fromNativeSyncOnClick() {
-            input.value = window.jsBridge.callNative("nativeGetInput", "")
+            input.value = jsBridge.callNativeSync("nativeGetInput", "");
           }
           function fromNativeAsyncOnClick() {
-            window.jsBridge.callNative("nativeGetInput", "", function(paramString){
-              input.value = paramString
-            })
+            jsBridge.callNative("nativeGetInput", "", function(paramString){
+              input.value = paramString;
+            });
           }
           function sendToNativeOnClick() {
-            window.jsBridge.callNative("nativeSetInput", input.value)
+            jsBridge.callNative("nativeSetInput", input.value);
           }
         </script>
     </body>
