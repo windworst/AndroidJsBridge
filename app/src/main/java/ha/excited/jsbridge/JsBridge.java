@@ -188,7 +188,7 @@ abstract public class JsBridge {
             syncResult = "";
             sendToJs(data);
             try {
-                while (syncWait) syncLock.wait(SYNC_WAIT_TIME, 0);
+                if (syncWait) syncLock.wait(SYNC_WAIT_TIME, 0);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -231,7 +231,7 @@ abstract public class JsBridge {
         });
         synchronized (lock) {
             try {
-                while (!finished[0]) lock.wait(SYNC_WAIT_TIME, 0);
+                if (!finished[0]) lock.wait(SYNC_WAIT_TIME, 0);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
