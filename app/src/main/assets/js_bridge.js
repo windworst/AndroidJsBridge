@@ -50,7 +50,12 @@ function createJsBridge(name) {
             } else if(null != params.funcName) {
                 var func = functions[params.funcName];
                 if(null != func) {
-                    var ret = func(params.paramString, makeNativeCallback(params.nativeCallback));
+                    var ret = ""
+                    try {
+                        ret = func(params.paramString, makeNativeCallback(params.nativeCallback));
+                    } catch(e) {
+                        console.log(e)
+                    }
                     if(null != params.sync) sendToNative({result: (ret || "")})
                 }
             }

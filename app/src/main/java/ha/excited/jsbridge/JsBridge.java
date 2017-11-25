@@ -26,7 +26,6 @@ abstract public class JsBridge {
     private final static String NATIVE_CALLBACK = "nativeCallback";
     private final static String EXPOSE_PREFIX = "ANDROID_NATIVE_";
     private final static String CALLBACK_PREFIX = "NATIVE_CB_";
-    private final static int SYNC_WAIT_TIME = 500;
 
     private final String name;
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -115,7 +114,12 @@ abstract public class JsBridge {
                         jsCallback = params.getString(JS_CALLBACK);
                     }
                     final String finalJsCallback = jsCallback;
-                    return function.call(paramString, makeJsCallback(finalJsCallback));
+                    try {
+                        return function.call(paramString, makeJsCallback(finalJsCallback));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return "";
+                    }
                 }
             } else if (params.has(NATIVE_CALLBACK)) {
                 String nativeCallback = params.getString(NATIVE_CALLBACK);
@@ -188,7 +192,7 @@ abstract public class JsBridge {
             syncResult = "";
             sendToJs(data);
             try {
-                if (syncWait) syncLock.wait(SYNC_WAIT_TIME, 0);
+                if (syncWait) syncLock.wait();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -231,7 +235,7 @@ abstract public class JsBridge {
         });
         synchronized (lock) {
             try {
-                if (!finished[0]) lock.wait(SYNC_WAIT_TIME, 0);
+                if (!finished[0]) lock.wait();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
