@@ -9,7 +9,7 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Map;
 
-abstract public class JsBridge {
+public final class JsBridge {
     public interface Callback {
         void callback(String paramString);
     }
@@ -17,6 +17,30 @@ abstract public class JsBridge {
     public interface Function {
         String call(String paramString, Callback callback);
     }
+
+    public static abstract class Adapter {
+        private JsBridge jsBridge = null;
+        private final String name;
+
+        public Adapter(String name) {
+            this.name = name;
+        }
+
+        public String jsCallNative(String message) {
+            return jsBridge.jsCallNative(message);
+        }
+
+        protected final String exposeName() {
+            return EXPOSE_PREFIX + name;
+        }
+
+        private void nativeCallJs(String message) {
+            evalJs(String.format("javascript:window.%s.nativeCallJs('%s')", name, message));
+        }
+
+        protected abstract void evalJs(String jsCode);
+    }
+
 
     private final static String FUNC_NAME = "funcName";
     private final static String SYNC = "sync";
@@ -26,15 +50,17 @@ abstract public class JsBridge {
     private final static String NATIVE_CALLBACK = "nativeCallback";
     private final static String EXPOSE_PREFIX = "ANDROID_NATIVE_";
     private final static String CALLBACK_PREFIX = "NATIVE_CB_";
+    private final static int SYNC_TIME_WAIT = 500;
 
-    private final String name;
+    private final Adapter adapter;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Map<String, Function> functions = new HashMap<>();
     private Map<String, Callback> callbacks = new HashMap<>();
     private int callbackCount = 0;
 
-    public JsBridge(String name) {
-        this.name = name;
+    public JsBridge(Adapter adapter) {
+        adapter.jsBridge = this;
+        this.adapter = adapter;
     }
 
     private String makeNativeCallbackString(Callback callback) {
@@ -76,7 +102,7 @@ abstract public class JsBridge {
         return this;
     }
 
-    public String jsCallNative(String message) {
+    private String jsCallNative(String message) {
         try {
             final JSONObject params = new JSONObject(message);
             if (params.has(RESULT)) {
@@ -99,7 +125,7 @@ abstract public class JsBridge {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        return "";
+        return null;
     }
 
     private String handleMessage(JSONObject params) {
@@ -118,7 +144,7 @@ abstract public class JsBridge {
                         return function.call(paramString, makeJsCallback(finalJsCallback));
                     } catch (Exception e) {
                         e.printStackTrace();
-                        return "";
+                        return null;
                     }
                 }
             } else if (params.has(NATIVE_CALLBACK)) {
@@ -134,7 +160,7 @@ abstract public class JsBridge {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        return "";
+        return null;
     }
 
     public void callJs(String funcName, String paramString) {
@@ -162,21 +188,16 @@ abstract public class JsBridge {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        return "";
+        return null;
     }
 
     private void sendToJs(final String data) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                evalJs(String.format("javascript:window.%s.nativeCallJs('%s')", name, data));
-            }
-        });
+        adapter.nativeCallJs(data);
     }
 
-    private String syncResult = "";
+    private String syncResult = null;
     private boolean syncWait = false;
-    private Object syncLock = new Object();
+    private final Object syncLock = new Object();
 
     private void handleSyncResult(String result) {
         synchronized (syncLock) {
@@ -187,18 +208,18 @@ abstract public class JsBridge {
     }
 
     private synchronized String sendToJsSync(String data) {
+        sendToJs(data);
         synchronized (syncLock) {
             syncWait = true;
-            syncResult = "";
-            sendToJs(data);
+            syncResult = null;
             try {
-                if (syncWait) syncLock.wait();
+                if (syncWait) syncLock.wait(SYNC_TIME_WAIT, 0);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
         String result = syncResult;
-        syncResult = "";
+        syncResult = null;
         return result;
     }
 
@@ -235,17 +256,11 @@ abstract public class JsBridge {
         });
         synchronized (lock) {
             try {
-                if (!finished[0]) lock.wait();
+                if (!finished[0]) lock.wait(SYNC_TIME_WAIT, 0);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
         return (T) result[0];
     }
-
-    protected final String exposeName() {
-        return EXPOSE_PREFIX + name;
-    }
-
-    protected abstract void evalJs(String jsCode);
 }

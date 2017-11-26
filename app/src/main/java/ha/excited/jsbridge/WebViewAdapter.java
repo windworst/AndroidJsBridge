@@ -2,10 +2,10 @@ package ha.excited.jsbridge;
 
 import android.webkit.WebView;
 
-public class WebViewJsBridge extends JsBridge {
+public class WebViewAdapter extends JsBridge.Adapter {
     private final WebView webView;
 
-    public WebViewJsBridge(WebView webView, String name) {
+    public WebViewAdapter(String name, WebView webView) {
         super(name);
         this.webView = webView;
         webView.addJavascriptInterface(this, exposeName());

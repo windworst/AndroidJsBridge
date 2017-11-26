@@ -1,10 +1,12 @@
 <html>
     <body>
         <form>
-            <input name="input" id="input" type="text" style="display: block; height: 40px; width: 100%;"/>
+            <input name="input" id="input" type="text" style="display: block; height: 40px; width: 100%; border: solid 1px #eee;"/>
             <input type="button" name="buttonFromNativeSync" value="fromNativeSync" onclick="fromNativeSyncOnClick()" />
             <input type="button" name="buttonFromNativeAsync" value="fromNativeAsync" onclick="fromNativeAsyncOnClick()" />
             <input type="button" name="buttonSendToNative" value="sendToNative" onclick="sendToNativeOnClick()" />
+            <input type="button" name="buttonSyncTest" value="10000 Sync Call Test" onclick="syncTestOnClick()" />
+            <input type="button" name="buttonAsyncTest" value="10000 Async Call Test" onclick="asyncTestOnClick()" />
         </form>
         <script src="js_bridge.js"></script>
         <script>
@@ -16,6 +18,9 @@
             if(null != callback) callback(input.value);
             return input.value;
           })
+          function nativeAlert(message) {
+            jsBridge.callNative("alert", message);
+          }
           function fromNativeSyncOnClick() {
             input.value = jsBridge.callNativeSync("nativeGetInput", "");
           }
@@ -26,6 +31,20 @@
           }
           function sendToNativeOnClick() {
             jsBridge.callNative("nativeSetInput", input.value);
+          }
+          function syncTestOnClick() {
+            var time = (new Date()).valueOf();
+            for(var i = 0; i<10000; ++i) {
+                jsBridge.callNativeSync("nativeSetInput", "" + i);
+            }
+            nativeAlert("spend time: " + ((new Date()).valueOf()- time) + "ms");
+          }
+          function asyncTestOnClick() {
+            var time = (new Date()).valueOf();
+            for(var i = 0; i<10000; ++i) {
+                jsBridge.callNative("nativeSetInput", "" + i);
+            }
+            nativeAlert("spend time: " + ((new Date()).valueOf()- time) + "ms");
           }
         </script>
     </body>
